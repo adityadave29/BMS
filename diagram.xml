@@ -1,0 +1,175 @@
+@startuml
+' Define User superclass
+class User {
+  &#45; email: String
+  
+  &#45; password: String
+  
+  &#43; login()
+  
+  &#43; logout()
+}
+
+
+' Define Customer subclass
+class Customer {
+  &#45; accountNumber: int
+  
+  &#45; phone: String
+  
+  &#45; address: String
+  
+  &#45; accountType: String
+  
+  &#43; viewBalance()
+  
+  &#43; depositMoney()
+  
+  &#43; withdrawMoney()
+  
+  &#43; transferFunds()
+  
+  &#43; applyLoan()
+  
+  &#43; changePassword()
+  
+  &#43; addFeedback()
+  
+  &#43; viewTransactions()
+}
+
+User <|-- Customer
+
+
+' Define Employee subclass
+class Employee {
+  &#45; employeeID: int
+  
+  &#45; name: String
+  
+  &#45; phone: String
+  
+  &#45; address: String
+  
+  &#45; position: String
+  
+  &#45; department: String
+  
+  &#43; addNewCustomer()
+  
+  &#43; approveRejectLoans()
+  
+  &#43; modifyCustomerDetails()
+  
+  &#43; modifyEmployeeDetails()
+  
+  &#43; viewAssignedLoans()
+}
+
+User <|-- Employee
+
+
+' Define Manager and Admin as specialized Employees
+class Manager {
+  &#43; activateDeactivateCustomer()
+  
+  &#43; listAllEmployees()
+  
+  &#43; assignLoan()
+  
+  &#43; reviewFeedback()
+  
+  &#43; changeOwnPassword()
+}
+
+Employee <|-- Manager
+
+
+class Admin {
+  &#43; addNewEmployee()
+  
+  &#43; modifyCustomerDetails()
+  
+  &#43; modifyEmployeeDetails()
+}
+
+Employee <|-- Admin
+
+
+' Account class
+class Account {
+  &#45; accNumber: int
+  
+  &#45; balance: int
+  
+  &#43; updateBalance()
+}
+
+Customer "1" *-- "1..*" Account
+
+
+' Loan class
+class Loan {
+  &#45; loanID: int
+  
+  &#45; amount: int
+  
+  &#45; type: String
+  
+  &#45; status: String
+  
+  &#45; assignedEmployeeID: int
+  
+  &#45; timestamp: String
+  
+  &#43; approve()
+  
+  &#43; reject()
+  
+  &#43; assignEmployee()
+}
+
+Customer "1" *-- "0..*" Loan
+Employee "0..1" --> "0..*" Loan : manages
+
+
+' Transaction class
+class Transaction {
+  &#45; transactionID: int
+  
+  &#45; fromAccount: int
+  
+  &#45; toAccount: int
+  
+  &#45; amount: int
+  
+  &#45; beforeBalance: int
+  
+  &#45; afterBalance: int
+  
+  &#45; timestamp: String
+  
+  &#43; logTransaction()
+}
+
+Account "1" *-- "0..*" Transaction
+
+
+' Feedback class
+class Feedback {
+  &#45; feedbackID: int
+  
+  &#45; customerID: int
+  
+  &#45; content: String
+  
+  &#45; timestamp: String
+  
+  &#43; addFeedback()
+  
+  &#43; reviewFeedback()
+}
+
+Customer "1" *-- "0..*" Feedback
+
+@enduml

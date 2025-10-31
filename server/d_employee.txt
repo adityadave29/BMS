@@ -1,0 +1,16 @@
+3 Aditya dave@gmail.com 2004 8910299922 Yuasdaw employee IT
+4 parva parva@gmail.com 2003 9090909090 valsad employee IT
+5 Dawe dawee@gmail.com dawe 9876543210 Kal employee IT
+7 kgf kgf@gmail.com kgf 9876556789 KGF manager manager
+8 manager manager@gmail.com manager1 1231231231 Ahmedabad manager IT
+9 Parthiv pd@gmail.com nanu 1233211233 Rajkot manager IT
+10 Dawe Dawe@gmail.com 2901 9012901290 Bangaluru manager IT
+11 Dhoni ms@gmail.com msdhoni 7777777777 Chennai employee HR
+12 Jane Jane@gmail.com Jane 1233211231 China employee HR
+13 dawe dw@gmail.com dw 819231231203 Rajkot manager IT
+14 emp@gmail.com emp emp emp emp employee emp
+15 Ratilal ratilal@gmail.com rat 43940209222 Kapadvanj manager IT
+21 emp11 emp11@gmail.com emp11 321831231 WYD manager IT
+22 emp2 emp2@gmail.com emp2 31231231913 RKT employee HR
+23 Gaurav g1@gmail.com g1 324294294242 KADI employee IT
+24 Vansh v@gmail.com v 31293018041 AHD manager Cloud

@@ -1,0 +1,10 @@
+1 4 1000 personal approved 13 - 2025-10-02 15:23:52
+1 5 10000 personal approved 11 - 2025-10-05 19:15:52
+1 6 100000 personal pending 7 - 2025-10-27 09:25:55
+1 7 90000 home pending 0 - 2025-10-27 14:54:20
+12 8 9999999 car approved 14 - 2025-10-29 09:40:09
+1 10 2027 personal approved 14 - 2025-10-31 10:22:56
+1 11 10000 car pending 0 - 2025-10-31 14:17:03
+1 12 10000 home pending 22 - 2025-10-31 14:51:27
+2 13 10000.00 personal approved 23 - 2025-10-31 17:04:58
+2 14 100000000.00 home rejected-Too much money  23 - 2025-10-31 17:38:09
