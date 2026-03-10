@@ -9,7 +9,7 @@ void activate_deactivate_customer(int client_sock)
     int status_found = 0;
 
     // Step 1: Ask for customer email
-    sprintf(msg, "Enter customer email:"); // ✅ match client
+    sprintf(msg, "Enter customer email:"); // match client
     send(client_sock, msg, strlen(msg), 0);
     int n = recv(client_sock, recv_buf, sizeof(recv_buf) - 1, 0);
     if (n <= 0)
