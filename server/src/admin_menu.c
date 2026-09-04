@@ -11,13 +11,13 @@ void admin_menu(int client_sock, char *email)
         "1. Add New Employee\n"
         "2. Modify Customer Details\n"
         "3. Modify Employee Details\n"
-        "4. Logout\n";
+        "4. Logout\n"
+        "Choice: ";
+
+    send(client_sock, menu, strlen(menu), 0);
 
     while (1)
     {
-        send(client_sock, menu, strlen(menu), 0);
-        send(client_sock, "Choice: ", 8, 0);
-
         memset(buffer, 0, sizeof(buffer));
         int n = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
         if (n <= 0)
@@ -46,6 +46,8 @@ void admin_menu(int client_sock, char *email)
         {
             send(client_sock, "Invalid option!\n", 16, 0);
         }
+
+        send(client_sock, menu, strlen(menu), 0);
     }
 }
 

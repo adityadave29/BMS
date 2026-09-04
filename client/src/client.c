@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #define PORT 9090
 #define BUF_SIZE 1024
@@ -12,10 +13,83 @@ char email_global[100] = "";
 
 void login_user(int sock);
 void exit_session(int sock);
-void client_menu(int sock);
+void client_menu(int sock, const char *initial_buf);
 void signal_handler(int sig);
 
-// This function will take input from client and send to server for login
+// Checks if the server's output buffer ends in an input prompt (e.g. "Choice: ", "Enter email: ", "? ")
+static int is_server_prompt(const char *buf)
+{
+    int len = strlen(buf);
+    if (len == 0)
+        return 0;
+
+    // Trim trailing whitespace
+    while (len > 0 && (buf[len - 1] == ' ' || buf[len - 1] == '\t' || buf[len - 1] == '\r' || buf[len - 1] == '\n'))
+        len--;
+
+    if (len > 0 && (buf[len - 1] == ':' || buf[len - 1] == '?'))
+        return 1;
+
+    return 0;
+}
+
+// Session communication loop for all roles (Customer, Admin, Employee, Manager)
+void client_menu(int sock, const char *initial_buf)
+{
+    char receiver_buffer[BUF_SIZE * 4];
+    char input_buffer[BUF_SIZE];
+    int n;
+
+    // If the login handshake response already contained the menu prompt
+    if (initial_buf != NULL && strlen(initial_buf) > 0)
+    {
+        if (is_server_prompt(initial_buf))
+        {
+            memset(input_buffer, 0, sizeof(input_buffer));
+            if (fgets(input_buffer, sizeof(input_buffer), stdin) != NULL)
+            {
+                input_buffer[strcspn(input_buffer, "\r\n")] = '\0';
+                send(sock, input_buffer, strlen(input_buffer), 0);
+            }
+        }
+    }
+
+    while (1)
+    {
+        memset(receiver_buffer, 0, sizeof(receiver_buffer));
+        n = recv(sock, receiver_buffer, sizeof(receiver_buffer) - 1, 0);
+        if (n <= 0)
+        {
+            printf("\nDisconnected from server.\n");
+            break;
+        }
+
+        receiver_buffer[n] = '\0';
+        printf("%s", receiver_buffer);
+        fflush(stdout);
+
+        // Check if session ended via logout or exit
+        if (strstr(receiver_buffer, "logged out successfully") || strstr(receiver_buffer, "exited the application"))
+        {
+            printf("\n--- Session Ended ---\n\n");
+            break;
+        }
+
+        // If the server sent a prompt requiring input, read from user and send back
+        if (is_server_prompt(receiver_buffer))
+        {
+            memset(input_buffer, 0, sizeof(input_buffer));
+            if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL)
+                break;
+            input_buffer[strcspn(input_buffer, "\r\n")] = '\0';
+
+            // Send user input to server
+            send(sock, input_buffer, strlen(input_buffer), 0);
+        }
+    }
+}
+
+// Handles initial login handshake
 void login_user(int sock)
 {
     char email[100], password[100], sender_buffer[BUF_SIZE], receiver_buffer[BUF_SIZE], role[50];
@@ -34,151 +108,43 @@ void login_user(int sock)
     send(sock, sender_buffer, strlen(sender_buffer), 0);
 
     memset(receiver_buffer, 0, BUF_SIZE);
-    recv(sock, receiver_buffer, BUF_SIZE - 1, 0);
-    printf("Server: %s\n", receiver_buffer);
+    int n = recv(sock, receiver_buffer, BUF_SIZE - 1, 0);
+    if (n <= 0)
+    {
+        printf("No response from server.\n");
+        return;
+    }
+    receiver_buffer[n] = '\0';
 
-    // here we are taking feedback from server about login status
+    printf("Server: %s\n", receiver_buffer);
+    fflush(stdout);
+
     if (strstr(receiver_buffer, "Login successful"))
     {
         strncpy(email_global, email, sizeof(email_global) - 1);
-        client_menu(sock);
+        client_menu(sock, receiver_buffer);
     }
 }
 
-// signal handler when user presses Ctrl+C or Ctrl+Z
+// Graceful signal handler (Ctrl+C / Ctrl+Z)
 void signal_handler(int sig)
 {
-    printf("\nSignal %d received. Waiting 2 seconds to finish any ongoing operations...\n", sig);
-
+    printf("\nSignal %d received. Closing session...\n", sig);
     signal(sig, SIG_IGN);
-    sleep(2);
 
     if (strlen(email_global) > 0)
     {
         char buffer[BUF_SIZE];
         snprintf(buffer, sizeof(buffer), "disconnect %s", email_global);
         send(sock_global, buffer, strlen(buffer), 0);
-        usleep(200000);
+        usleep(100000);
     }
-
-    printf("\nSession closed (signal %d). Exiting...\n", sig);
 
     close(sock_global);
     exit(0);
 }
 
-// here based on need this function will take input from client
-void client_menu(int sock)
-{
-    char sender_buffer[BUF_SIZE], receiver_buffer[BUF_SIZE * 4];
-    int n;
-
-    memset(receiver_buffer, 0, sizeof(receiver_buffer));
-    n = recv(sock, receiver_buffer, sizeof(receiver_buffer) - 1, 0);
-    if (n > 0)
-    {
-        receiver_buffer[n] = '\0';
-        printf("%s", receiver_buffer);
-    }
-
-    while (1)
-    {
-        printf("Enter choice: ");
-        fgets(sender_buffer, sizeof(sender_buffer), stdin);
-        sender_buffer[strcspn(sender_buffer, "\n")] = 0;
-
-        if (strlen(sender_buffer) == 0)
-            continue;
-
-        send(sock, sender_buffer, strlen(sender_buffer), 0);
-
-        memset(receiver_buffer, 0, sizeof(receiver_buffer));
-        int total = 0;
-
-        while ((n = recv(sock, receiver_buffer + total, sizeof(receiver_buffer) - 1 - total, 0)) > 0)
-        {
-            total += n;
-            receiver_buffer[total] = '\0';
-
-            if (
-                // ---- Customer Operations ----
-                strstr(receiver_buffer, "Enter amount to deposit:") ||
-                strstr(receiver_buffer, "Enter amount to withdraw:") ||
-                strstr(receiver_buffer, "Enter recipient account number:") ||
-                strstr(receiver_buffer, "Enter amount to transfer:") ||
-                strstr(receiver_buffer, "Enter loan amount:") ||
-                strstr(receiver_buffer, "Enter loan type") ||
-                strstr(receiver_buffer, "Enter your feedback:") ||
-                strstr(receiver_buffer, "Enter old password:") ||
-                strstr(receiver_buffer, "Enter new password:") ||
-                strstr(receiver_buffer, "Confirm new password:") ||
-                strstr(receiver_buffer, "Enter your new password:") ||
-
-                // ---- Employee creation/modification ----
-                strstr(receiver_buffer, "Enter employee name:") ||
-                strstr(receiver_buffer, "Enter employee email:") ||
-                strstr(receiver_buffer, "Enter employee password:") ||
-                strstr(receiver_buffer, "Enter employee phone number:") ||
-                strstr(receiver_buffer, "Enter phone number:") ||
-                strstr(receiver_buffer, "Enter address:") ||
-                strstr(receiver_buffer, "Enter position:") ||
-                strstr(receiver_buffer, "Enter department:") ||
-                strstr(receiver_buffer, "Enter Loan ID to assign:") ||
-                strstr(receiver_buffer, "Enter Employee ID to assign to:") ||
-                strstr(receiver_buffer, "Enter Loan ID to approve/reject:") ||
-                strstr(receiver_buffer, "Approve or Reject?") ||
-                strstr(receiver_buffer, "Enter reason for rejection:") ||
-
-                // ---- Customer Management (Employee Side) ----
-                strstr(receiver_buffer, "Enter customer phone number:") ||
-                strstr(receiver_buffer, "Enter customer email:") ||
-                strstr(receiver_buffer, "Enter password for customer:") ||
-                strstr(receiver_buffer, "Enter customer address:") ||
-                strstr(receiver_buffer, "Enter account type (savings/current):") ||
-
-                // ---- Modify Customer ----
-                strstr(receiver_buffer, "Enter customer account number:") ||
-                strstr(receiver_buffer, "Enter new email:") ||
-                strstr(receiver_buffer, "Enter new password:") ||
-                strstr(receiver_buffer, "Enter new phone:") ||
-                strstr(receiver_buffer, "Enter new address:") ||
-                strstr(receiver_buffer, "Enter new account type:") ||
-
-                // ---- Modify Employee ----
-                strstr(receiver_buffer, "Enter employee ID:") ||
-                strstr(receiver_buffer, "Enter new position:") ||
-                strstr(receiver_buffer, "Enter new department:") ||
-                strstr(receiver_buffer, "Enter user email to modify:") ||
-                strstr(receiver_buffer, "Enter 1 to activate or 0 to deactivate:"))
-            {
-                printf("%s", receiver_buffer);
-                char input[BUF_SIZE];
-                fgets(input, sizeof(input), stdin);
-                input[strcspn(input, "\n")] = 0;
-                send(sock, input, strlen(input), 0);
-
-                total = 0;
-                memset(receiver_buffer, 0, sizeof(receiver_buffer));
-                continue;
-            }
-            if (strstr(receiver_buffer, "Choice:"))
-                break;
-        }
-
-        if (n <= 0)
-            break;
-
-        printf("%s", receiver_buffer);
-
-        if (strstr(receiver_buffer, "logged out successfully") || strstr(receiver_buffer, "exited the application"))
-        {
-            printf("\n--- Session Ended ---\n\n");
-            break;
-        }
-    }
-}
-
-// this will handle exit session
+// Handles exit session
 void exit_session(int sock)
 {
     send(sock, "exit", 4, 0);
@@ -187,7 +153,7 @@ void exit_session(int sock)
     exit(0);
 }
 
-// Here we will make connection to server and handle signals
+// Main application loop
 int main()
 {
     int sock;
@@ -214,7 +180,7 @@ int main()
         exit(1);
     }
 
-    printf("Connected to server.\n");
+    printf("Connected to server on port %d.\n", PORT);
 
     while (1)
     {
