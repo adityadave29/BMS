@@ -43,6 +43,10 @@ void handle_client(int client_sock)
             sscanf(buffer + 6, "%99s %99s %49s", email, password, role);
             login_user(client_sock, email, password, role);
         }
+        else
+        {
+            send(client_sock, "Invalid command. Please use login or exit.\n", 43, 0);
+        }
     }
 
     close(client_sock);
