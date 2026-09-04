@@ -20,7 +20,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 
-#define PORT 8080
+#define PORT 9090
 #define BUF_SIZE 1024
 #define MAX_LINE 512
 

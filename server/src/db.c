@@ -543,4 +543,5 @@ void init_database(void)
     }
     pthread_mutex_unlock(&users_mutex);
     printf("[DATABASE] Binary database initialized & all active session flags reset to 0.\n");
+    fflush(stdout);
 }

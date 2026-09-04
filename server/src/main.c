@@ -50,6 +50,7 @@ int main()
     init_database();
 
     printf("Server running on port %d (multithreaded with pthread & binary database)...\n", PORT);
+    fflush(stdout);
 
     while (1)
     {
@@ -70,6 +71,7 @@ int main()
         }
 
         printf("Client connected [fd: %d].\n", *client_sock);
+        fflush(stdout);
 
         pthread_t tid;
         if (pthread_create(&tid, NULL, handle_client_thread, (void *)client_sock) != 0)
