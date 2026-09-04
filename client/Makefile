@@ -1,35 +1,34 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -g -pthread -Iinclude
+CFLAGS = -Wall -g
 
 # Directories
 SRC_DIR = src
-INC_DIR = include
 BUILD_DIR = build
 
 # Target executable
-TARGET = server
+TARGET = client
 
-# All source and object files
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
+# Source and object files
+SRCS = $(SRC_DIR)/client.c
+OBJS = $(BUILD_DIR)/client.o
 
 # Default target
 all: $(TARGET)
 
-# Link all object files into target executable
+# Link executable
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
-# Compile C source files to object files in build directory
+# Compile C source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Create build directory if it doesn't exist
+# Create build directory
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Run the server
+# Run the client
 run: $(TARGET)
 	./$(TARGET)
 
@@ -38,4 +37,3 @@ clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 .PHONY: all run clean
-

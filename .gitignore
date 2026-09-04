@@ -1,0 +1,21 @@
+# Compiled binaries
+server/server
+client/client
+
+# Build directories and object files
+*.o
+build/
+server/build/
+client/build/
+
+# Debug symbols
+*.dSYM/
+
+# Temporary data files generated during runtime modifications
+server/data/temp*
+server/data/temp.txt
+server/data/temp_*.txt
+
+# OS-specific files
+.DS_Store
+Thumbs.db

@@ -1,83 +1,123 @@
-
 # Bank Management System – Server-Client Architecture
-## Usecases
-- Customers can login to view and manage their bank accounts.
-- Customers can perform transactions: deposit, withdraw, and transfer funds.
-- Customers can apply for different types of loans and track their status.
-- Customers can provide feedback and view transaction history.
 
-- Employees can add new customers and modify customer details.
-- Employees can view assigned loan applications and approve or reject them.
+A high-performance, multithreaded Bank Management System written in C using TCP socket programming, fixed-size binary records (`.dat`), record-level `fcntl` byte-range locking for ACID compliance, and role-based access control.
 
-- Admins can add new employees and modify details of customers and employees.
-- Admins have rights to manage user roles and data.
+---
 
-- Managers can activate or deactivate customer accounts.
-- Managers can list all employees and manage loan assignments.
-- Managers can review customer feedback and change their own password.
-- All roles have dedicated menus and session handling for smooth operation.
+## 📁 Project Structure
 
-## 🛠️ Tech Stack
-
-** C-Programming
-
-
-## Run Locally
-
-Clone the project
-
-```bash
-  git clone https://github.com/adityadave29/BMS.git
+```text
+BMS/
+├── client/
+│   ├── Makefile                  # Build instructions for client
+│   └── src/
+│       └── client.c              # Client CLI interface and signal handling
+├── server/
+│   ├── Makefile                  # Build instructions for server
+│   ├── data/                     # Fixed-size binary database engine (.dat)
+│   │   ├── users.dat             # User credentials, roles & is_logged_in flag
+│   │   ├── customers.dat         # Customer profile details & account info
+│   │   ├── employees.dat         # Employee & Manager profile records
+│   │   ├── balance.dat           # Account balances (in-place byte locking)
+│   │   ├── loans.dat             # Loan records & assignment statuses
+│   │   ├── transactions.dat      # Append-only transaction ledger
+│   │   ├── feedbacks.dat         # Customer feedback records
+│   │   └── counters.dat          # Atomic sequential ID generator counters
+│   ├── include/
+│   │   └── server.h              # Struct definitions, constants & DB prototypes
+│   └── src/
+│       ├── main.c                # Multithreaded TCP server (pthread listener)
+│       ├── db.c                  # Binary database engine & fcntl record locking
+│       ├── handle_client.c       # Client connection worker thread
+│       ├── auth.c                # Authentication & in-place session locking
+│       ├── transaction.c         # Deposits, withdrawals, transfers & ledger
+│       ├── client_menu.c         # Customer menu operations & password change
+│       ├── admin_menu.c          # Admin operations (employee/customer onboarding)
+│       ├── employee_menu.c       # Employee operations (customer creation, loans)
+│       └── manager_menu.c        # Manager operations (activation, assignments)
+├── docs/
+│   ├── diagram.png               # System architecture diagram
+│   └── diagram.xml               # Diagram source XML
+├── Makefile                      # Top-level orchestrator Makefile
+├── .gitignore                    # Git ignore file for binaries and temporary files
+└── README.md                     # Project documentation
 ```
 
-Go to the project directory
+---
 
+## 🚀 Use Cases & Roles
+
+- **Customers**:
+  - View balance and deposit/withdraw/transfer funds with atomic locking.
+  - Apply for loans and track approval status.
+  - Submit feedback and view personal transaction history.
+  - Change account password in-place.
+
+- **Employees**:
+  - Add new customers and modify customer details.
+  - View assigned loan applications and approve or reject them with automatic balance crediting.
+
+- **Admins**:
+  - Add new employees and modify employee/customer profiles.
+  - Manage user roles and system records.
+
+- **Managers**:
+  - Activate or deactivate customer accounts (`is_active = 1/0`).
+  - List all employees and assign loans to specific employees.
+  - Review customer feedback and change manager password.
+
+---
+
+## 🛠️ Tech Stack & Key Architectures
+
+- **Language**: C (C99/C11)
+- **Networking**: POSIX TCP Sockets (`sys/socket.h`, `netinet/in.h`)
+- **Concurrency**: POSIX Threads (`pthread`), detached worker model
+- **Database Engine**: Fixed-size binary structs with direct seek & in-place update
+- **Locking & ACID**: POSIX Record-Level Byte-Range Locking (`fcntl` with `F_RDLCK`, `F_WRLCK`)
+- **Build System**: GNU Make
+
+---
+
+## ⚡ Quick Start & Build
+
+### 1. Build Both Server and Client
+From the project root:
 ```bash
-  cd my-project
+make
 ```
-To start the server, This command will compile add the files listed in Makefile
 
+### 2. Run the Server
 ```bash
-  cd server
-  make 
-  make run 
-  make clean
+make run-server
+# or
+cd server && make run
 ```
 
-To run the client
-
+### 3. Run the Client
+In another terminal window:
 ```bash
-  cd client
-  gcc bm_client.c -o client
+make run-client
+# or
+cd client && make run
 ```
 
-
-## Running Tests
-
-To check Concurrancy and ACID propertie
-
+### 4. Clean Build Artifacts
 ```bash
-   email: d@gmail.com
-   password: 2901
-   role: user
+make clean
 ```
-Now, if you try to log in with the same credentials from another terminal, the system will not allow it.
-This ensures one active session per user at a time.
 
-To achieve this, the system uses a file named d_active.txt, which maintains a list of currently logged-in users.
+---
 
-If the user session terminates unexpectedly (for example, by pressing Ctrl+C or Ctrl+Z), a signal handler is triggered.
-This handler ignores the signal for 10 seconds and then automatically removes the user's email from d_active.txt to maintain consistency.
+## 🧪 Concurrency, Locking & Session Features
 
-### Test 2
-Now, consider a scenario where two employees are simultaneously adding new customers and both press the Add Customer button at the same time. In this situation, both processes access a shared file that provides sequential customer IDs.
+### 1. Record-Level `fcntl` Byte-Range Locking
+- Every record is a fixed-size C struct (`User`, `Customer`, `AccountBalance`, etc.).
+- When reading or updating a record at index $N$, the server calculates `offset = N * sizeof(Struct)` and applies `fcntl` record locking (`F_RDLCK` or `F_WRLCK`) on **only those specific bytes**.
+- No temporary files (`temp_*.txt`) are created; updates occur directly in-place with zero file re-writing overhead.
 
-To prevent a race condition, the system implements file locking.
-This ensures that: The first employee gets the current customer ID. The next employee receives the incremented ID only after the first process completes.
-
-The same locking logic is applied for:
-
-- New employee creation
-- Feedback entries
-- Transaction IDs
-- Loan IDs
+### 2. Integrated `is_logged_in` Flag & Crash Recovery
+- Single active session per user is enforced directly within `users.dat` using the `is_logged_in` boolean flag.
+- When a user logs in, their `is_logged_in` field is set to `1` using a write lock.
+- Duplicate login attempts from another terminal are blocked.
+- On server startup, `init_database()` automatically resets `is_logged_in = 0` across all records, ensuring 100% crash resilience without stale lockouts.

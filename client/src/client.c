@@ -21,23 +21,26 @@ void login_user(int sock)
     char email[100], password[100], sender_buffer[BUF_SIZE], receiver_buffer[BUF_SIZE], role[50];
 
     printf("Enter email: ");
-    scanf("%s", email);
+    scanf("%99s", email);
     printf("Enter password: ");
-    scanf("%s", password);
-    printf("Enter role(User/employee/manager): ");
-    scanf("%s", role);
+    scanf("%99s", password);
+    printf("Enter role (User/employee/manager/admin): ");
+    scanf("%49s", role);
+
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF); // Flush trailing newline from stdin
 
     snprintf(sender_buffer, BUF_SIZE, "login %s %s %s", email, password, role);
     send(sock, sender_buffer, strlen(sender_buffer), 0);
 
     memset(receiver_buffer, 0, BUF_SIZE);
-    recv(sock, receiver_buffer, BUF_SIZE, 0);
+    recv(sock, receiver_buffer, BUF_SIZE - 1, 0);
     printf("Server: %s\n", receiver_buffer);
 
     // here we are taking feedback from server about login status
     if (strstr(receiver_buffer, "Login successful"))
     {
-        strcpy(email_global, email);
+        strncpy(email_global, email, sizeof(email_global) - 1);
         client_menu(sock);
     }
 }
@@ -215,9 +218,12 @@ int main()
 
     while (1)
     {
-        int choice;
+        int choice = 0;
+        char choice_buf[32];
         printf("\nMenu:\n1. Login\n2. Exit\nChoice: ");
-        scanf("%d", &choice);
+        if (fgets(choice_buf, sizeof(choice_buf), stdin) == NULL)
+            break;
+        choice = atoi(choice_buf);
 
         switch (choice)
         {
